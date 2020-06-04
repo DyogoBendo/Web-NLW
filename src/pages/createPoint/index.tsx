@@ -1,12 +1,29 @@
-import React from "react";
+import React, { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { FiArrowLeft } from "react-icons/fi";
 import { Map, TileLayer, Marker } from "react-leaflet";
+import api from "../../services/api";
 
 import "./styles.css";
 import logo from "../../assets/logo.svg";
 
+interface Item{
+  id: number;
+  title: string;
+  image_url: string;
+}
+
 const CreatePoint = () => {
+
+  const [items, setItems] = useState<Item[]>([]); // criando um estado
+
+
+  useEffect(() => {
+    api.get("items").then((response) => {
+      setItems(response.data)
+    }); // usamos uma promise
+  }, []); //Primeiro parametro -> qual funcao eu quero executar e o segundo eh quando quero executa-la. Ao nao colocar nada no segundo parametro, ele eh executado uma unica vez apenas, quando o componente eh criado
+
   return (
     <div id="page-create-point">
       <header>
@@ -56,7 +73,7 @@ const CreatePoint = () => {
               attribution='&amp;copy <a href="http://osm.org/copyright">OpenStreetMap</a> contributors'
               url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
             />
-            <Marker position={[-25.4430381, -54.4013914]}/>
+            <Marker position={[-25.4430381, -54.4013914]} />
           </Map>
 
           <div className="field-group">
@@ -81,48 +98,16 @@ const CreatePoint = () => {
             <span>Selecione um ou mais itens abaixo</span>
           </legend>
           <ul className="items-grid">
-            <li>
+            {items.map(item => (
+              <li key={item.id}> {/** Precisamos indicar um valor unico de cada item */}
               <img
-                src="http://localhost:3333/uploads/lampadas.svg"
-                alt="Teste"
+                src={item.image_url}
+                alt={item.title}
               />
-              <span>Lâmpada</span>
+              <span>{item.title}</span>
             </li>
-            <li className="selected">
-              <img
-                src="http://localhost:3333/uploads/lampadas.svg"
-                alt="Teste"
-              />
-              <span>Lâmpada</span>
-            </li>
-            <li>
-              <img
-                src="http://localhost:3333/uploads/lampadas.svg"
-                alt="Teste"
-              />
-              <span>Lâmpada</span>
-            </li>
-            <li>
-              <img
-                src="http://localhost:3333/uploads/lampadas.svg"
-                alt="Teste"
-              />
-              <span>Lâmpada</span>
-            </li>
-            <li>
-              <img
-                src="http://localhost:3333/uploads/lampadas.svg"
-                alt="Teste"
-              />
-              <span>Lâmpada</span>
-            </li>
-            <li>
-              <img
-                src="http://localhost:3333/uploads/lampadas.svg"
-                alt="Teste"
-              />
-              <span>Lâmpada</span>
-            </li>
+            ))} {/** Percorre item por item */}
+            
           </ul>
         </fieldset>
         <button type="submit">Cadastrar ponto de coleta</button>
