@@ -1,28 +1,79 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, ChangeEvent } from "react";
 import { Link } from "react-router-dom";
 import { FiArrowLeft } from "react-icons/fi";
 import { Map, TileLayer, Marker } from "react-leaflet";
 import api from "../../services/api";
+import axios from "axios";
 
 import "./styles.css";
 import logo from "../../assets/logo.svg";
 
-interface Item{
+interface Item {
   id: number;
   title: string;
   image_url: string;
 }
 
+interface IBGEUFResponse {
+  sigla: string;
+}
+
+interface IBGECityResponse {
+  nome: string;
+}
+
 const CreatePoint = () => {
+  const [items, setItems] = useState<Item[]>([]); // criando um estado para itens
+  const [ufs, setUfs] = useState<string[]>([]); // criando um estado para ufs
+  const [cities, setCities] = useState<string[]>([]); // criando um estado para cidades
 
-  const [items, setItems] = useState<Item[]>([]); // criando um estado
+  const [selectedUf, setSelectedUf] = useState("0"); // criando estado para uf selecionada
+  const [selectedCity, setSelectedCity] = useState("0"); // criando estado para cidade selecionada
 
-
+  // Pegar os itens
   useEffect(() => {
     api.get("items").then((response) => {
-      setItems(response.data)
+      setItems(response.data);
     }); // usamos uma promise
   }, []); //Primeiro parametro -> qual funcao eu quero executar e o segundo eh quando quero executa-la. Ao nao colocar nada no segundo parametro, ele eh executado uma unica vez apenas, quando o componente eh criado
+
+  // Pegar os estados
+  useEffect(() => {
+    axios
+      .get<IBGEUFResponse[]>(
+        "https://servicodados.ibge.gov.br/api/v1/localidades/estados"
+      )
+      .then((response) => {
+        const ufInitials = response.data.map((uf) => uf.sigla);
+
+        setUfs(ufInitials);
+      });
+  }, []);
+
+  // Pegar os municipios
+  useEffect(() => {
+    if (selectedUf === "0") return;
+    axios
+      .get<IBGECityResponse[]>(
+        `https://servicodados.ibge.gov.br/api/v1/localidades/estados/${selectedUf}/municipios`
+      )
+      .then((response) => {
+        const cityName = response.data.map((cidade) => cidade.nome);
+
+        setCities(cityName);
+      });
+  }, [selectedUf]); // carregar as cidades sempre que for selecionada uma nova UF
+
+  function handleSelectUf(event: ChangeEvent<HTMLSelectElement>) {
+    // preciso informar que estou alterando um HTML selected Element
+    const uf = event.target.value;
+    setSelectedUf(uf);
+  }
+  function handleSelectCity(event: ChangeEvent<HTMLSelectElement>) {
+    // preciso informar que estou alterando um HTML selected Element
+    const city = event.target.value;
+    setSelectedCity(city);
+  }
 
   return (
     <div id="page-create-point">
@@ -79,14 +130,34 @@ const CreatePoint = () => {
           <div className="field-group">
             <div className="field">
               <label htmlFor="uf">Estado(UF)</label>
-              <select name="uf" id="uf">
+              <select
+                name="uf"
+                id="uf"
+                value={selectedUf}
+                onChange={handleSelectUf}
+              >
                 <option value="0">Selecione uma UF</option>
+                {ufs.map((uf) => (
+                  <option key={uf} value={uf}>
+                    {uf}
+                  </option>
+                ))}
               </select>
             </div>
             <div className="field">
               <label htmlFor="city">Cidade</label>
-              <select name="city" id="city">
+              <select
+                name="city"
+                id="city"
+                value={selectedCity}
+                onChange={handleSelectCity}
+              >
                 <option value="0">Selecione uma cidade</option>
+                {cities.map((city) => (
+                  <option key={city} value={city}>
+                    {city}
+                  </option>
+                ))}
               </select>
             </div>
           </div>
@@ -98,16 +169,15 @@ const CreatePoint = () => {
             <span>Selecione um ou mais itens abaixo</span>
           </legend>
           <ul className="items-grid">
-            {items.map(item => (
-              <li key={item.id}> {/** Precisamos indicar um valor unico de cada item */}
-              <img
-                src={item.image_url}
-                alt={item.title}
-              />
-              <span>{item.title}</span>
-            </li>
-            ))} {/** Percorre item por item */}
-            
+            {items.map((item) => (
+              <li key={item.id}>
+                {" "}
+                {/** Precisamos indicar um valor unico de cada item */}
+                <img src={item.image_url} alt={item.title} />
+                <span>{item.title}</span>
+              </li>
+            ))}{" "}
+            {/** Percorre item por item */}
           </ul>
         </fieldset>
         <button type="submit">Cadastrar ponto de coleta</button>
