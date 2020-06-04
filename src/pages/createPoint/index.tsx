@@ -31,6 +31,16 @@ const CreatePoint = () => {
   const [selectedUf, setSelectedUf] = useState("0"); // criando estado para uf selecionada
   const [selectedCity, setSelectedCity] = useState("0"); // criando estado para cidade selecionada
   const [selectedPosition, setSelectedPosition] = useState<[number, number]>([0, 0]); // criando estado para posicao no mapa selecionada
+  const [initialPosition, setIniticialPosition] = useState<[number, number]>([0, 0]); // criando estado para posicao inicial no mapa
+
+  // Posicao do usuario assim que ele abre a aplicacao
+  useEffect(() =>{
+    navigator.geolocation.getCurrentPosition(position =>{ // variavel global, que possui em todo navegadors
+      const { latitude, longitude} = position.coords;
+
+      setIniticialPosition([latitude, longitude])
+    }) 
+  }, []);
 
   // Pegar os itens
   useEffect(() => {
@@ -130,7 +140,7 @@ const CreatePoint = () => {
             <span>Selecione o endereço do mapa</span>
           </legend>
 
-          <Map center={[-25.4430381, -54.4013914]} zoom={15} onclick={handleMapClick}>
+          <Map center={initialPosition} zoom={15} onclick={handleMapClick}>
             {" "}
             /** Recebe um array: Primeiro valor latitude, segundo valor
             longitude */
