@@ -1,9 +1,10 @@
 import React from 'react';
 import "./App.css";
-import Home from "./pages/Home"; // import pega automaticamente o indexs
+
+import Routes from './routes';
 
 function App() {
-  return <Home />;
+  return <Routes />;
 }
 
 export default App;
