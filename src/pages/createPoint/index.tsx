@@ -1,9 +1,9 @@
-import React, { useEffect, useState, ChangeEvent } from "react";
-import { Link } from "react-router-dom";
+import React, { useEffect, useState, ChangeEvent, FormEvent} from "react";
+import { Link, useHistory} from "react-router-dom";
 import { FiArrowLeft } from "react-icons/fi";
 import { Map, TileLayer, Marker } from "react-leaflet";
 import api from "../../services/api";
-import {LeafletMouseEvent} from 'leaflet';
+import { LeafletMouseEvent } from "leaflet";
 import axios from "axios";
 
 import "./styles.css";
@@ -30,16 +30,30 @@ const CreatePoint = () => {
 
   const [selectedUf, setSelectedUf] = useState("0"); // criando estado para uf selecionada
   const [selectedCity, setSelectedCity] = useState("0"); // criando estado para cidade selecionada
-  const [selectedPosition, setSelectedPosition] = useState<[number, number]>([0, 0]); // criando estado para posicao no mapa selecionada
-  const [initialPosition, setIniticialPosition] = useState<[number, number]>([0, 0]); // criando estado para posicao inicial no mapa
+  const [selectedPosition, setSelectedPosition] = useState<[number, number]>([
+    0,
+    0,
+  ]); // criando estado para posicao no mapa selecionada
+  const [initialPosition, setIniticialPosition] = useState<[number, number]>([
+    0,
+    0,
+  ]); // criando estado para posicao inicial no mapa
+  const [formData, setFormData] = useState({
+    name: "",
+    email: "",
+    whatsapp: "",
+  }); // criando estado para dados de formulario
+  const [selectedItems, setSelectedItems] = useState<number[]>([]);
+  const history = useHistory();
 
   // Posicao do usuario assim que ele abre a aplicacao
-  useEffect(() =>{
-    navigator.geolocation.getCurrentPosition(position =>{ // variavel global, que possui em todo navegadors
-      const { latitude, longitude} = position.coords;
+  useEffect(() => {
+    navigator.geolocation.getCurrentPosition((position) => {
+      // variavel global, que possui em todo navegadors
+      const { latitude, longitude } = position.coords;
 
-      setIniticialPosition([latitude, longitude])
-    }) 
+      setIniticialPosition([latitude, longitude]);
+    });
   }, []);
 
   // Pegar os itens
@@ -76,7 +90,6 @@ const CreatePoint = () => {
       });
   }, [selectedUf]); // carregar as cidades sempre que for selecionada uma nova UF
 
-
   // Lidando com a Uf selecionada
   function handleSelectUf(event: ChangeEvent<HTMLSelectElement>) {
     // preciso informar que estou alterando um HTML selected Element
@@ -92,11 +105,56 @@ const CreatePoint = () => {
   }
 
   // Lidando com uma selecao no mapa
-  function handleMapClick(event: LeafletMouseEvent){
-    setSelectedPosition([
-      event.latlng.lat,
-      event.latlng.lng
-    ])
+  function handleMapClick(event: LeafletMouseEvent) {
+    setSelectedPosition([event.latlng.lat, event.latlng.lng]);
+  }
+
+  // lidando com os campos de formulario
+  function handleInputChange(event: ChangeEvent<HTMLInputElement>) {
+    const { name, value } = event.target;
+    setFormData({ ...formData, [name]: value }); // name nesse caso fica como nome do atributo que sera modificado
+  }
+
+  // lidando com os itens selecionados
+  function handleSelectItem(id: number) {
+    const alreadySelected = selectedItems.findIndex(item => item === id); // procura o index do item
+
+    if(alreadySelected >= 0){ // se existir
+      const filteredItems = selectedItems.filter(item => item !== id); // pega um array com todos os elementos, menos o que possui o id que foi passado
+
+      setSelectedItems(filteredItems); 
+    }else{ // senao so adiciona
+      setSelectedItems([...selectedItems, id]);
+    }
+    
+  }
+
+  // lidando com submit
+  async function handleSubmit(event: FormEvent){ // padrao de formulario é enviar para outra página ao dar submit. Queremos evitar isso
+    event.preventDefault();
+
+    const {name, email, whatsapp} = formData;
+    const uf = selectedUf;
+    const city = selectedCity;
+    const [latitude, longitude] = selectedPosition;
+    const items = selectedItems;
+
+    const data = {
+      name,
+      email,
+      whatsapp, 
+      uf, 
+      city,
+      latitude, 
+      longitude, 
+      items
+    }; // pegando os dados
+
+    await api.post('points', data); // passando os dados para o backend
+
+    alert('Cadastrado com sucesso!');
+
+    history.push('/'); // mandando usuario para a home
   }
 
   return (
@@ -108,7 +166,7 @@ const CreatePoint = () => {
           Voltar para a home
         </Link>
       </header>
-      <form>
+      <form onSubmit={handleSubmit}>
         <h1>
           Cadastro do <br /> ponto de coletas
         </h1>
@@ -119,17 +177,32 @@ const CreatePoint = () => {
 
           <div className="field">
             <label htmlFor="name"> Nome da entidade</label>
-            <input type="text" name="name" id="name" />
+            <input
+              type="text"
+              name="name"
+              id="name"
+              onChange={handleInputChange}
+            />
           </div>
 
           <div className="field-group">
             <div className="field">
               <label htmlFor="email"> E-mail</label>
-              <input type="email" name="email" id="email" />
+              <input
+                type="email"
+                name="email"
+                id="email"
+                onChange={handleInputChange}
+              />
             </div>
             <div className="field">
-              <label htmlFor="whats"> Whatsapp</label>
-              <input type="text" name="whats" id="whats" />
+              <label htmlFor="whatsapp"> Whatsapp</label>
+              <input
+                type="text"
+                name="whatsapp"
+                id="whatsapp"
+                onChange={handleInputChange}
+              />
             </div>
           </div>
         </fieldset>
@@ -194,8 +267,12 @@ const CreatePoint = () => {
           </legend>
           <ul className="items-grid">
             {items.map((item) => (
-              <li key={item.id}>
-                {" "}
+              <li
+                key={item.id}
+                onClick={() => handleSelectItem(item.id)}
+                className={selectedItems.includes(item.id)? 'selected':'' /** checa se o item ja foi selecionado */}
+              >
+                {/**Sempre que quero passar um parametro para uma funcao, preciso criar uma arrow function */}
                 {/** Precisamos indicar um valor unico de cada item */}
                 <img src={item.image_url} alt={item.title} />
                 <span>{item.title}</span>
